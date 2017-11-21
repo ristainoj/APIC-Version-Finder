@@ -1,6 +1,6 @@
 from flask import Flask, g, abort
-from flask.ext.pymongo import PyMongo
-from flask_login import (LoginManager, login_required, login_user, 
+#from flask.ext.pymongo import PyMongo
+from flask_login import (LoginManager, login_required, login_user,
     current_user, logout_user)
 from flask import request, make_response, render_template, jsonify
 import re

@@ -656,6 +656,7 @@ class Session(object):
         response.ok is True if login is successful.
         """
         logging.info('Initializing connection to the APIC')
+
         try:
             resp = self._send_login(timeout)
         except ConnectionError as e:

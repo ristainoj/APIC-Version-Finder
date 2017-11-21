@@ -7,8 +7,8 @@ import logging, logging.handlers, json, re, time, dateutil.parser, datetime
 import subprocess, os, signal, sys, traceback
 try: import cPickle as pickle
 except ImportError: import pickle
-from pymongo import UpdateOne, InsertOne
-from pymongo.errors import BulkWriteError
+#from pymongo import UpdateOne, InsertOne
+#from pymongo.errors import BulkWriteError
 
 # globals
 _g_app = None       # track app so we don't need to create it multiple times
