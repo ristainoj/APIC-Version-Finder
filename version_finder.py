@@ -4,12 +4,7 @@
 
 import sys, os, subprocess, re, getpass, argparse, logging, logging.handlers
 #from app.tasks.ept import utils as ept_utils
-from app.tasks.tools.acitoolkit.acisession import Session
-from app.models.users import Users
-from app.models.roles import Roles
-from app.models.settings import Settings
-from app.models.ept import EP_Settings
-from app.models.utils import force_attribute_type
+from acisession import Session
 
 # setup ept_utils logger
 logger = logging.getLogger(__name__)
@@ -32,10 +27,10 @@ def env_setup(args):
 # Load IP from ARGS or Prompt
     ip = args.ip
     while ip is None:
-        ip = getpass.getpass("Enter IP of APIC:")
+        ip = raw_input("Enter IP of APIC   :")
         if len(ip) == 0:
             print "URL is required"
-            usr = None
+            ip = None
 
 # Set URL to HTTPS if set in ARGS
     https = args.https
@@ -47,7 +42,7 @@ def env_setup(args):
 # Load username from ARGS or Prompt
     usr = args.username
     while usr is None:
-        usr = getpass.getpass( "Enter username: ")
+        usr = getpass.getpass( "Enter username   : ")
         if len(usr)==0:
             print "Username is required"
             usr = None
@@ -55,7 +50,7 @@ def env_setup(args):
 # Load PW from ARGS or Prompt
     pwd = args.password
     while pwd is None:
-        pwd = getpass.getpass( "Enter admin password: ")
+        pwd = getpass.getpass( "Enter admin password   : ")
         pwd2 = getpass.getpass("Re-enter password   : ")
         if len(pwd)==0:
             pwd = None
@@ -66,7 +61,7 @@ def env_setup(args):
             print "No spaces allowed in password"
             pwd = None
 
-    return url
+    return url, usr, pwd
 
 def get_fabric_version(url, usr, pwd):
     """ use provided cert credentials and read firmwareCtrlrRunning
@@ -74,12 +69,16 @@ def get_fabric_version(url, usr, pwd):
     logger.debug("attempting to get fabric version from %s@%s" % (
         usr, url))
 
-    #try:
+    # Create a Session to login to APIC
     session = Session(url, usr, pwd, verify_ssl=False)
     resp = session.login(timeout=60)
-    #if resp is None or not resp.ok:
-            #logger.error("failed to login with cert credentials")
-            #return None
+    if resp is None or not resp.ok:
+            logger.error("failed to login with cert credentials")
+            return None
+
+    # GET firmwareCtrlrRunning APIC
+    moUrl = "/api/node/class/firmwareCtrlrRunning.json"
+    resp = session.get(moUrl)
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -96,10 +95,11 @@ def get_args():
 
     return parser.parse_args()
 
+
 if __name__ == "__main__":
 
     args = get_args()
 
-    url = env_setup(args)
+    url, usr, pwd = env_setup(args)
 
-    get_fabric_version(url, args.username, args.password)
+    get_fabric_version(url, usr, pwd)
