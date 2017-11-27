@@ -5,7 +5,11 @@
 import sys, re, getpass, argparse, logging, logging.handlers
 from acisession import Session
 
-# setup logging
+
+#####################################
+### Uncomment if you want logging ###
+#####################################
+
 logger = logging.getLogger(__name__)
 root_logger = logging.getLogger()
 #root_logger.setLevel(logging.DEBUG)
