@@ -129,10 +129,12 @@ def get_fabric_version(url, usr, pwd):
     # Iterate through number of Switches and display version of each
     for i in range(0, int(num_of_switch)):
         dn = switchJS["imdata"][i]["firmwareRunning"]["attributes"]["dn"]
-        regex = re.findall("^topology\/pod-[0-9]\/(node-[0-9]+)", str(dn))
-        version = switchJS["imdata"][i]["firmwareRunning"]["attributes"]["version"]
-        #print "APIC" + str(i + 1)  + " ----> " + version
-        print str(regex) + " ----> " + version
+        #regex = re.findall("^topology\/pod-[0-9]\/(node-[0-9]+)", str(dn))
+        r1 = re.search("^topology\/pod-[0-9]+\/(?P<n>node-[0-9]+)", str(dn))
+        if r1 is not None:
+            version = switchJS["imdata"][i]["firmwareRunning"]["attributes"]["version"]
+            #print "APIC" + str(i + 1)  + " ----> " + version
+            print r1.group("n") + " ----> " + version
 
 def get_args():
     parser = argparse.ArgumentParser()
