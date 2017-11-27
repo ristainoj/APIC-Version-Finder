@@ -2,14 +2,13 @@
 # firmwareCtrlrRunning - APIC Firmware
 # firmwareRunning - Switch Firmware
 
-import sys, os, subprocess, re, getpass, argparse, logging, logging.handlers
-#from app.tasks.ept import utils as ept_utils
+import sys, re, getpass, argparse, logging, logging.handlers
 from acisession import Session
 
-# setup ept_utils logger
+# setup logging
 logger = logging.getLogger(__name__)
 root_logger = logging.getLogger()
-root_logger.setLevel(logging.DEBUG)
+#root_logger.setLevel(logging.DEBUG)
 
 logger_handler = logging.StreamHandler(sys.stdout)
 fmt ="%(process)d||%(asctime)s.%(msecs).03d||%(levelname)s||%(filename)s"
@@ -20,7 +19,6 @@ logger_handler.setFormatter(logging.Formatter(
     )
 logger.addHandler(logger_handler)
 root_logger.addHandler(logger_handler)
-#ept_utils.setup_logger(logger, quiet=True)
 
 def env_setup(args):
 
@@ -32,9 +30,14 @@ def env_setup(args):
             print "URL is required"
             ip = None
 
-# Set URL to HTTPS if set in ARGS
+# Set URL based on auth and port number if set in ARGS
     https = args.https
-    if https:
+    port = args.port
+    if port and https:
+        url = str("https://" + ip + ":" + port)
+    elif port:
+        url = str("http://" + ip + ":" + port)
+    elif https:
         url = str("https://" + ip)
     else:
         url = str("http://" + ip)
@@ -76,9 +79,60 @@ def get_fabric_version(url, usr, pwd):
             logger.error("failed to login with cert credentials")
             return None
 
-    # GET firmwareCtrlrRunning APIC
-    moUrl = "/api/node/class/firmwareCtrlrRunning.json"
-    resp = session.get(moUrl)
+    # GET firmwareCtrlrRunning and firmwareRunning from APIC
+    apicMoUrl = "/api/node/class/firmwareCtrlrRunning.json"
+    switchMoUrl = "/api/node/class/firmwareRunning.json"
+    apicResp = session.get(apicMoUrl)
+    apicJS = apicResp.json()
+    switchResp = session.get(switchMoUrl)
+    switchJS = switchResp.json()
+
+    # Get # of APICs in cluster
+    num_of_apics = apicJS['totalCount']
+    if num_of_apics == "1":
+        print "\n"
+        print "#########################################"
+        print "     There is %s APIC in the cluster" % num_of_apics
+        print "#########################################"
+    else:
+        print "\n"
+        print "#########################################"
+        print "    There are %s APICs in the cluster" % num_of_apics
+        print "#########################################"
+
+    # Iterate through number of APICs and display version of each
+    for i in range(0, int(num_of_apics)):
+        dn = apicJS["imdata"][i]["firmwareCtrlrRunning"]["attributes"]["dn"]
+        regex = re.findall("^topology\/pod-[0-9]\/(node-[0-9])", str(dn))
+        version = apicJS["imdata"][i]["firmwareCtrlrRunning"]["attributes"]["version"]
+        #print "APIC" + str(i + 1)  + " ----> " + version
+        if str(regex) == "['node-1']":
+            apic = "APIC1"
+        elif str(regex) == "['node-2']":
+            apic = "APIC2"
+        else:
+            apic = "APIC3"
+        print apic + " ----> " + version
+
+    print "\n"
+    # Get # of Switches in cluster
+    num_of_switch = switchJS['totalCount']
+    if num_of_switch == "1":
+        print "#########################################"
+        print "There is %s Switch in the cluster" % num_of_switch
+        print "#########################################"
+    else:
+        print "#########################################"
+        print "   There are %s Switches in the cluster" % num_of_switch
+        print "#########################################"
+
+    # Iterate through number of Switches and display version of each
+    for i in range(0, int(num_of_switch)):
+        dn = switchJS["imdata"][i]["firmwareRunning"]["attributes"]["dn"]
+        regex = re.findall("^topology\/pod-[0-9]\/(node-[0-9]+)", str(dn))
+        version = switchJS["imdata"][i]["firmwareRunning"]["attributes"]["version"]
+        #print "APIC" + str(i + 1)  + " ----> " + version
+        print str(regex) + " ----> " + version
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -92,6 +146,8 @@ def get_args():
         help="admin password", default=None)
     parser.add_argument("--https", action="store_true", dest="https",
         help="Specifies whether to use HTTPS authentication", default=None)
+    parser.add_argument("--port", action="store", dest="port",
+        help="port number to use for APIC communicaton", default=None)
 
     return parser.parse_args()
 
